@@ -10,14 +10,15 @@ from io import BytesIO
 st.set_page_config(page_title="Catálogo - Pronta Entrega", layout="wide")
 
 # ---------- LOGO À ESQUERDA, ACIMA DO TÍTULO ----------
-logo = Image.open("logo.png")
+logo_path = Path(__file__).parent / "logo.png"
+logo = Image.open(logo_path)
 st.markdown(
     """
     <div style="display:flex; align-items:center; justify-content:flex-start; margin-bottom:10px;">
         <img src="data:image/png;base64,{}" style="width:90px; height:auto; object-fit:contain;">
     </div>
     """.format(
-        base64.b64encode(open(r"P:\PROJETO\logo.png", "rb").read()).decode()
+        base64.b64encode(open(logo_path, "rb").read()).decode()
     ),
     unsafe_allow_html=True
 )
@@ -29,7 +30,7 @@ st.markdown(
 )
 
 # ---------- CARREGAR PLANILHA ----------
-DATA_PATH = r"P:\PROJETO\ESTOQUE PRONTA ENTREGA CLAMI.xlsx"
+DATA_PATH = Path(__file__).parent / "ESTOQUE PRONTA ENTREGA CLAMI.xlsx"
 df = pd.read_excel(DATA_PATH, header=1)
 df.columns = df.columns.str.strip()
 df = df.drop_duplicates(subset="CODIGO DO PRODUTO", keep="first")
@@ -38,7 +39,6 @@ df = df.drop_duplicates(subset="CODIGO DO PRODUTO", keep="first")
 col1, col2 = st.columns([2, 3])
 
 with col1:
-    # === CSS: fundo das tags cinza + hover suave ===
     st.markdown(
         """
         <style>
@@ -123,7 +123,10 @@ if search_term:
 
 st.write(f"Total de produtos exibidos: {len(df_filtered)}")
 
-IMAGES_DIR = Path(r"P:\PROJETO\IMAGENS")
+# ---------- DIRETÓRIO DAS IMAGENS (compatível com Render e local) ----------
+IMAGES_DIR = Path(__file__).parent / "IMAGENS"
+if not IMAGES_DIR.exists():
+    st.warning("⚠️ Pasta 'IMAGENS' não encontrada no diretório do projeto.")
 
 # ---------- 5 CARDS POR LINHA ----------
 num_cols = 5
