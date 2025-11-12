@@ -60,7 +60,7 @@ st.write(f"Total de produtos exibidos: {len(df_filtered)}")
 
 # ------------------ CONFIG IMAGENS ------------------
 IMAGES_DIR = BASE_DIR / "STATIC" / "IMAGENS"
-GITHUB_USER = "mostruario"
+GITHUB_USER = "mostruario"  # link corrigido
 GITHUB_REPO = "catalogo_pronta_entrega"
 GITHUB_BRANCH = "main"
 
