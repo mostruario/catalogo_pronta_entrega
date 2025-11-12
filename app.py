@@ -9,11 +9,13 @@ from io import BytesIO
 # ---------- CONFIGURAÇÃO ----------
 st.set_page_config(page_title="Catálogo - Pronta Entrega", layout="wide")
 
-# ---------- BASE DIR ----------
-BASE_DIR = Path(__file__).parent  # Pasta onde está o app.py
+# ---------- CAMINHOS RELATIVOS ----------
+BASE_DIR = Path(__file__).resolve().parent
+logo_path = BASE_DIR / "logo.png"
+DATA_PATH = BASE_DIR / "ESTOQUE PRONTA ENTREGA CLAMI.xlsx"
+IMAGES_DIR = BASE_DIR / "IMAGENS"
 
 # ---------- LOGO À ESQUERDA, ACIMA DO TÍTULO ----------
-logo_path = BASE_DIR / "logo.png"
 with open(logo_path, "rb") as f:
     logo_b64 = base64.b64encode(f.read()).decode()
 
@@ -34,7 +36,6 @@ st.markdown(
 )
 
 # ---------- CARREGAR PLANILHA ----------
-DATA_PATH = BASE_DIR / "ESTOQUE PRONTA ENTREGA CLAMI.xlsx"
 df = pd.read_excel(DATA_PATH, header=1)
 df.columns = df.columns.str.strip()
 df = df.drop_duplicates(subset="CODIGO DO PRODUTO", keep="first")
@@ -43,19 +44,15 @@ df = df.drop_duplicates(subset="CODIGO DO PRODUTO", keep="first")
 col1, col2 = st.columns([2, 3])
 
 with col1:
-    # === CSS: fundo das tags cinza + hover suave ===
     st.markdown(
         """
         <style>
-        /* Área do multiselect */
         div.stMultiSelect > div:first-child {
             background-color: #ffffff !important;
             border: 1.5px solid #4B7BEC !important;
             border-radius: 10px !important;
             padding: 5px 8px !important;
         }
-
-        /* Tags selecionadas */
         div.stMultiSelect [data-baseweb="tag"],
         div.stMultiSelect [data-baseweb="tag"] > div,
         div.stMultiSelect [data-baseweb="tag"] span,
@@ -67,26 +64,18 @@ with col1:
             color: #333 !important;
             transition: background-color 0.2s ease-in-out;
         }
-
-        /* Hover nas tags */
         div.stMultiSelect [data-baseweb="tag"]:hover,
         div.stMultiSelect .css-1kidpmw:hover,
         div.stMultiSelect .css-1n0xq7o:hover {
             background-color: #d1d1d1 !important;
         }
-
-        /* Remove fundos vermelhos inline */
         div.stMultiSelect *[style*="background"] {
             background-color: inherit !important;
         }
-
-        /* Ícone e texto */
         div.stMultiSelect [data-baseweb="tag"] svg,
         div.stMultiSelect [data-baseweb="tag"] > span {
             color: #333 !important;
         }
-
-        /* Foco do campo */
         div.stMultiSelect > div:first-child:focus-within {
             border-color: #4B7BEC !important;
             box-shadow: 0 0 0 2px rgba(75,123,236,0.18) !important;
@@ -115,7 +104,7 @@ with col2:
         """,
         unsafe_allow_html=True
     )
-    search_term = st.text_input("Pesquisar Produto")  # ← "P" maiúsculo
+    search_term = st.text_input("Pesquisar Produto")
 
 # ---------- FILTRO DE DADOS ----------
 if marca_filter:
@@ -127,9 +116,6 @@ if search_term:
     df_filtered = df_filtered[df_filtered["DESCRIÇÃO DO PRODUTO"].str.contains(search_term, case=False, na=False)]
 
 st.write(f"Total de produtos exibidos: {len(df_filtered)}")
-
-# ---------- PASTA DE IMAGENS ----------
-IMAGES_DIR = BASE_DIR / "IMAGENS"
 
 # ---------- 5 CARDS POR LINHA ----------
 num_cols = 5
@@ -148,7 +134,6 @@ for i in range(0, len(df_filtered), num_cols):
                 img_path = IMAGES_DIR / "SEM IMAGEM.jpg"
 
             image = Image.open(img_path)
-
             buffered = BytesIO()
             image.save(buffered, format="PNG")
             img_str = base64.b64encode(buffered.getvalue()).decode()
