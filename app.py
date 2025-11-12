@@ -15,98 +15,34 @@ logo_path = BASE_DIR / "logo.png"
 DATA_PATH = BASE_DIR / "ESTOQUE PRONTA ENTREGA CLAMI.xlsx"
 IMAGES_DIR = BASE_DIR / "IMAGENS"
 
-# ---------- LOGO À ESQUERDA, ACIMA DO TÍTULO ----------
+# ---------- LOGO ----------
 with open(logo_path, "rb") as f:
     logo_b64 = base64.b64encode(f.read()).decode()
 
 st.markdown(
     f"""
-    <div style="display:flex; align-items:center; justify-content:flex-start; margin-bottom:10px; overflow:visible;">
+    <div style="display:flex; align-items:center; justify-content:flex-start; margin-bottom:10px;">
         <img src="data:image/png;base64,{logo_b64}" 
-             style="width:90px; height:auto; object-fit:contain; display:block;">
+             style="width:90px; height:auto; object-fit:contain;">
     </div>
     """,
     unsafe_allow_html=True
 )
 
-# ---------- TÍTULO CENTRALIZADO ----------
-st.markdown(
-    '<h1 style="text-align: center;">CATÁLOGO - PRONTA ENTREGA</h1>',
-    unsafe_allow_html=True
-)
+st.markdown('<h1 style="text-align: center;">CATÁLOGO - PRONTA ENTREGA</h1>', unsafe_allow_html=True)
 
 # ---------- CARREGAR PLANILHA ----------
 df = pd.read_excel(DATA_PATH, header=1)
 df.columns = df.columns.str.strip()
 df = df.drop_duplicates(subset="CODIGO DO PRODUTO", keep="first")
 
-# ---------- FILTROS HORIZONTAIS ESTILIZADOS ----------
+# ---------- FILTROS ----------
 col1, col2 = st.columns([2, 3])
-
 with col1:
-    st.markdown(
-        """
-        <style>
-        div.stMultiSelect > div:first-child {
-            background-color: #ffffff !important;
-            border: 1.5px solid #4B7BEC !important;
-            border-radius: 10px !important;
-            padding: 5px 8px !important;
-        }
-        div.stMultiSelect [data-baseweb="tag"],
-        div.stMultiSelect [data-baseweb="tag"] > div,
-        div.stMultiSelect [data-baseweb="tag"] span,
-        div.stMultiSelect [data-testid="stMultiSelect"] [data-baseweb="tag"],
-        div.stMultiSelect .css-1kidpmw,
-        div.stMultiSelect .css-1n0xq7o {
-            background-color: #e0e0e0 !important;
-            border: none !important;
-            color: #333 !important;
-            transition: background-color 0.2s ease-in-out;
-        }
-        div.stMultiSelect [data-baseweb="tag"]:hover,
-        div.stMultiSelect .css-1kidpmw:hover,
-        div.stMultiSelect .css-1n0xq7o:hover {
-            background-color: #d1d1d1 !important;
-        }
-        div.stMultiSelect *[style*="background"] {
-            background-color: inherit !important;
-        }
-        div.stMultiSelect [data-baseweb="tag"] svg,
-        div.stMultiSelect [data-baseweb="tag"] > span {
-            color: #333 !important;
-        }
-        div.stMultiSelect > div:first-child:focus-within {
-            border-color: #4B7BEC !important;
-            box-shadow: 0 0 0 2px rgba(75,123,236,0.18) !important;
-            background-color: #ffffff !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-    marca_filter = st.multiselect(
-        "Marca", options=df["MARCA"].unique()
-    )
-
+    marca_filter = st.multiselect("Marca", options=df["MARCA"].unique())
 with col2:
-    st.markdown(
-        """
-        <style>
-        div.stTextInput > div > input {
-            font-size: 16px;
-            height: 35px;
-        }
-        div.stTextInput > label {
-            font-size: 18px;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
     search_term = st.text_input("Pesquisar Produto")
 
-# ---------- FILTRO DE DADOS ----------
 if marca_filter:
     df_filtered = df[df["MARCA"].isin(marca_filter)]
 else:
@@ -117,86 +53,75 @@ if search_term:
 
 st.write(f"Total de produtos exibidos: {len(df_filtered)}")
 
-# ---------- 5 CARDS POR LINHA ----------
+# ---------- EXIBIR PRODUTOS ----------
 num_cols = 5
 for i in range(0, len(df_filtered), num_cols):
     cols = st.columns(num_cols)
     for j, idx in enumerate(range(i, min(i + num_cols, len(df_filtered)))):
         row = df_filtered.iloc[idx]
-        with cols[j]:
-            # ---------- IMAGEM DO PRODUTO ----------
-            img_name = row.get("LINK_IMAGEM", None)
-            if img_name:
-                img_path = IMAGES_DIR / img_name
-                if not img_path.exists():
-                    img_path = IMAGES_DIR / "SEM IMAGEM.jpg"
-            else:
+
+        # 🔧 Corrige caminho da imagem — extrai só o nome do arquivo
+        img_name_raw = row.get("LINK_IMAGEM", "")
+        img_name = Path(str(img_name_raw)).name if pd.notna(img_name_raw) else None
+
+        if img_name:
+            img_path = IMAGES_DIR / img_name
+            if not img_path.exists():
                 img_path = IMAGES_DIR / "SEM IMAGEM.jpg"
+        else:
+            img_path = IMAGES_DIR / "SEM IMAGEM.jpg"
 
-            image = Image.open(img_path)
-            buffered = BytesIO()
-            image.save(buffered, format="PNG")
-            img_str = base64.b64encode(buffered.getvalue()).decode()
+        image = Image.open(img_path)
+        buffered = BytesIO()
+        image.save(buffered, format="PNG")
+        img_str = base64.b64encode(buffered.getvalue()).decode()
 
-            # ---------- FORMATAR "DE" E "POR" ----------
-            de_raw = row.get('DE', 0)
-            try:
-                de_num = float(str(de_raw).replace(',', '.'))
-            except:
-                de_num = 0
-            de_valor = f"R$ {de_num:,.2f}".replace(',', 'v').replace('.', ',').replace('v', '.')
+        de_raw = row.get('DE', 0)
+        por_raw = row.get('POR', 0)
+        try:
+            de_valor = f"R$ {float(str(de_raw).replace(',', '.')):,.2f}".replace(',', 'v').replace('.', ',').replace('v', '.')
+        except:
+            de_valor = "R$ 0,00"
+        try:
+            por_valor = f"R$ {float(str(por_raw).replace(',', '.')):,.2f}".replace(',', 'v').replace('.', ',').replace('v', '.')
+        except:
+            por_valor = "R$ 0,00"
 
-            por_raw = row.get('POR', 0)
-            try:
-                por_num = float(str(por_raw).replace(',', '.'))
-            except:
-                por_num = 0
-            por_valor = f"R$ {por_num:,.2f}".replace(',', 'v').replace('.', ',').replace('v', '.')
+        dimensoes = []
+        for campo, nome in [('COMPRIMENTO', 'Comp.'), ('ALTURA', 'Alt.'), ('LARGURA', 'Larg.'), ('DIAMETRO', 'Ø Diam.')]:
+            valor = row.get(campo)
+            if valor not in [None, 0, '0', '']:
+                dimensoes.append(f"{nome}: {valor}")
+        dimensoes_str = ', '.join(dimensoes)
 
-            # ---------- MONTAR DIMENSÕES ----------
-            dimensoes = []
-            if row.get('COMPRIMENTO') not in [None, 0, '0', '']:
-                dimensoes.append(f"Comp.: {row.get('COMPRIMENTO')}")
-            if row.get('ALTURA') not in [None, 0, '0', '']:
-                dimensoes.append(f"Alt.: {row.get('ALTURA')}")
-            if row.get('LARGURA') not in [None, 0, '0', '']:
-                dimensoes.append(f"Larg.: {row.get('LARGURA')}")
-            if row.get('DIAMETRO') not in [None, 0, '0', '']:
-                dimensoes.append(f"Ø Diam: {row.get('DIAMETRO')}")
-
-            dimensoes_str = ', '.join(dimensoes)
-
-            # ---------- CARD COMPLETO ----------
-            st.markdown(
-                f"""
-                <div style="
-                    border:1px solid #e0e0e0;
-                    border-radius:15px;
-                    margin:5px;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                    background-color:#ffffff;
-                    display:flex;
-                    flex-direction:column;
-                    justify-content:flex-start;
-                    height:800px;
-                    overflow:hidden;
-                ">
-                    <div style="text-align:center; flex-shrink:0;">
-                        <img src="data:image/png;base64,{img_str}" 
-                             style="width:100%; height:auto; object-fit:cover; border-radius:15px 15px 0 0;">
-                    </div>
-                    <div style="padding:10px; text-align:left; flex-grow:1; overflow:hidden;">
-                        <h4 style="margin-bottom:5px; font-size:18px;">{row['DESCRIÇÃO DO PRODUTO']}</h4>
-                        <p style="margin:0;"><b>Código:</b> {row['CODIGO DO PRODUTO']}</p>
-                        <p style="margin:0;"><b>Marca:</b> {row['MARCA']}</p>
-                        <p style="margin:0;">{dimensoes_str}</p>
-                        <p style="margin:0;"><b>De:</b> 
-                            <span style="text-decoration: line-through; color: #999;">{de_valor}</span></p>
-                        <p style="margin:0;"><b>Por:</b> 
-                            <span style="color:#d32f2f; font-size:20px; font-weight:bold;">{por_valor}</span></p>
-                        <p style="margin:0;"><b>Estoque:</b> {row.get('ESTOQUE DISPONIVEL','')}</p>
-                    </div>
+        st.markdown(
+            f"""
+            <div style="
+                border:1px solid #e0e0e0;
+                border-radius:15px;
+                margin:5px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                background-color:#ffffff;
+                display:flex;
+                flex-direction:column;
+                justify-content:flex-start;
+                height:800px;
+                overflow:hidden;
+            ">
+                <div style="text-align:center;">
+                    <img src="data:image/png;base64,{img_str}" 
+                         style="width:100%; height:auto; object-fit:cover; border-radius:15px 15px 0 0;">
                 </div>
-                """,
-                unsafe_allow_html=True
-            )
+                <div style="padding:10px; text-align:left;">
+                    <h4 style="margin-bottom:5px; font-size:18px;">{row['DESCRIÇÃO DO PRODUTO']}</h4>
+                    <p style="margin:0;"><b>Código:</b> {row['CODIGO DO PRODUTO']}</p>
+                    <p style="margin:0;"><b>Marca:</b> {row['MARCA']}</p>
+                    <p style="margin:0;">{dimensoes_str}</p>
+                    <p style="margin:0;"><b>De:</b> <span style="text-decoration: line-through; color: #999;">{de_valor}</span></p>
+                    <p style="margin:0;"><b>Por:</b> <span style="color:#d32f2f; font-size:20px; font-weight:bold;">{por_valor}</span></p>
+                    <p style="margin:0;"><b>Estoque:</b> {row.get('ESTOQUE DISPONIVEL','')}</p>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
