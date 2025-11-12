@@ -2,17 +2,25 @@ import streamlit as st
 import pandas as pd
 import os
 
-# Caminho base das imagens no GitHub (Render vai usar essa URL)
+# ---------- CONFIGURAÇÃO ----------
+st.set_page_config(page_title="Catálogo - Pronta Entrega", layout="wide")
+
+# Caminho base das imagens no GitHub (Render usa essa URL)
 BASE_URL = "https://raw.githubusercontent.com/mostruario/catalogo_pronta_entrega/main/STATIC/IMAGENS/"
 
-# Carrega planilha
-file_path = "ESTOQUE PRONTA ENTREGA CLAMI.xlsx"
-df = pd.read_excel(file_path)
+# ---------- DEBUG (mostrar URLs das imagens no app) ----------
+DEBUG = True  # deixe True até confirmarmos que as imagens aparecem
 
-# Normaliza nomes das colunas (tira espaços, maiúsculas etc.)
+# ---------- CARREGAR PLANILHA ----------
+file_path = "ESTOQUE PRONTA ENTREGA CLAMI.xlsx"
+if not os.path.exists(file_path):
+    st.error("❌ Arquivo da planilha não foi encontrado no Render.")
+    st.stop()
+
+df = pd.read_excel(file_path)
 df.columns = df.columns.str.strip().str.upper()
 
-# Ajusta nomes esperados
+# Corrige nomes padrão
 col_map = {
     "MARCA": "MARCA",
     "COMP.": "COMP.",
@@ -23,19 +31,18 @@ col_map = {
 }
 df = df.rename(columns={c: col_map[c] for c in df.columns if c in col_map})
 
-# Sidebar - Filtro
+# ---------- FILTROS ----------
 st.sidebar.title("Filtros")
 marcas = df["MARCA"].dropna().unique()
 marca_select = st.sidebar.multiselect("Selecione a marca", marcas)
 
-# Filtra por marca
 if marca_select:
     df = df[df["MARCA"].isin(marca_select)]
 
-# Título
+# ---------- TÍTULO ----------
 st.title("🛋️ Catálogo de Produtos - Pronta Entrega")
 
-# Loop para exibir os produtos
+# ---------- EXIBIÇÃO DOS PRODUTOS ----------
 for _, row in df.iterrows():
     with st.container():
         col1, col2 = st.columns([1, 2])
@@ -44,9 +51,15 @@ for _, row in df.iterrows():
             imagem = str(row.get("IMAGEM", "")).strip()
             if imagem and imagem != "nan":
                 image_url = BASE_URL + imagem.replace(" ", "%20")
-                st.image(image_url, use_container_width=True)
             else:
-                st.image(BASE_URL + "SEM%20IMAGEM.jpg", use_container_width=True)
+                image_url = BASE_URL + "SEM%20IMAGEM.jpg"
+
+            # Mostra a imagem
+            st.image(image_url, use_container_width=True)
+
+            # Mostra a URL da imagem para debug
+            if DEBUG:
+                st.caption(f"🔍 URL da imagem: `{image_url}`")
 
         with col2:
             st.markdown(f"### {row.get('DESCRIÇÃO', '')}")
@@ -58,5 +71,6 @@ for _, row in df.iterrows():
                 unsafe_allow_html=True
             )
 
+# ---------- RODAPÉ ----------
 st.markdown("---")
 st.markdown("<center><small>Catálogo automático - CLAMI</small></center>", unsafe_allow_html=True)
