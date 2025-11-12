@@ -1,3 +1,4 @@
+# app.py
 import streamlit as st
 import pandas as pd
 from PIL import Image
@@ -9,7 +10,8 @@ from io import BytesIO
 st.set_page_config(page_title="Catálogo - Pronta Entrega", layout="wide")
 
 # ---------- LOGO À ESQUERDA, ACIMA DO TÍTULO ----------
-logo_path = Path("STATIC/IMAGENS/logo.png")
+# Caminho relativo (Render não tem acesso a P:\)
+logo_path = Path(__file__).parent / "STATIC" / "IMAGENS" / "logo.png"
 if logo_path.exists():
     with open(logo_path, "rb") as f:
         logo_b64 = base64.b64encode(f.read()).decode()
@@ -18,11 +20,13 @@ if logo_path.exists():
         f"""
         <div style="display:flex; align-items:center; justify-content:flex-start; margin-bottom:10px; overflow:visible;">
             <img src="data:image/png;base64,{logo_b64}" 
-                style="width:90px; height:auto; object-fit:contain; display:block;">
+                 style="width:90px; height:auto; object-fit:contain; display:block;">
         </div>
         """,
         unsafe_allow_html=True
     )
+else:
+    st.warning("⚠️ Logo não encontrada. Verifique se 'STATIC/IMAGENS/logo.png' existe no repositório.")
 
 # ---------- TÍTULO CENTRALIZADO ----------
 st.markdown(
@@ -31,7 +35,11 @@ st.markdown(
 )
 
 # ---------- CARREGAR PLANILHA ----------
-DATA_PATH = Path("ESTOQUE PRONTA ENTREGA CLAMI.xlsx")
+DATA_PATH = Path(__file__).parent / "ESTOQUE PRONTA ENTREGA CLAMI.xlsx"
+if not DATA_PATH.exists():
+    st.error("❌ Arquivo da planilha não encontrado no diretório do projeto.")
+    st.stop()
+
 df = pd.read_excel(DATA_PATH, header=1)
 df.columns = df.columns.str.strip()
 df = df.drop_duplicates(subset="CODIGO DO PRODUTO", keep="first")
@@ -51,26 +59,14 @@ with col1:
         }
         div.stMultiSelect [data-baseweb="tag"],
         div.stMultiSelect [data-baseweb="tag"] > div,
-        div.stMultiSelect [data-baseweb="tag"] span,
-        div.stMultiSelect [data-testid="stMultiSelect"] [data-baseweb="tag"],
-        div.stMultiSelect .css-1kidpmw,
-        div.stMultiSelect .css-1n0xq7o {
+        div.stMultiSelect [data-baseweb="tag"] span {
             background-color: #e0e0e0 !important;
             border: none !important;
             color: #333 !important;
             transition: background-color 0.2s ease-in-out;
         }
-        div.stMultiSelect [data-baseweb="tag"]:hover,
-        div.stMultiSelect .css-1kidpmw:hover,
-        div.stMultiSelect .css-1n0xq7o:hover {
+        div.stMultiSelect [data-baseweb="tag"]:hover {
             background-color: #d1d1d1 !important;
-        }
-        div.stMultiSelect *[style*="background"] {
-            background-color: inherit !important;
-        }
-        div.stMultiSelect [data-baseweb="tag"] svg,
-        div.stMultiSelect [data-baseweb="tag"] > span {
-            color: #333 !important;
         }
         div.stMultiSelect > div:first-child:focus-within {
             border-color: #4B7BEC !important;
@@ -113,8 +109,8 @@ if search_term:
 
 st.write(f"Total de produtos exibidos: {len(df_filtered)}")
 
-# ---------- DIRETÓRIO DE IMAGENS ----------
-IMAGES_DIR = Path("STATIC/IMAGENS")
+# ---------- CAMINHO DAS IMAGENS (agora relativo para o Render) ----------
+IMAGES_DIR = Path(__file__).parent / "STATIC" / "IMAGENS"
 
 # ---------- 5 CARDS POR LINHA ----------
 num_cols = 5
@@ -124,20 +120,25 @@ for i in range(0, len(df_filtered), num_cols):
         row = df_filtered.iloc[idx]
         with cols[j]:
             # ---------- IMAGEM DO PRODUTO ----------
-            img_name = row.get("LINK_IMAGEM", None)
+            img_name = None
+            if "LINK_IMAGEM" in row and pd.notna(row["LINK_IMAGEM"]):
+                raw_path = Path(str(row["LINK_IMAGEM"]))
+                img_name = raw_path.name  # pega só o nome do arquivo
+
             if img_name:
-                # Se houver caminho completo, pega apenas o nome do arquivo
-                img_file = Path(img_name).name
-                img_path = IMAGES_DIR / img_file
+                img_path = IMAGES_DIR / img_name
                 if not img_path.exists():
                     img_path = IMAGES_DIR / "SEM IMAGEM.jpg"
             else:
                 img_path = IMAGES_DIR / "SEM IMAGEM.jpg"
 
-            image = Image.open(img_path)
-            buffered = BytesIO()
-            image.save(buffered, format="PNG")
-            img_str = base64.b64encode(buffered.getvalue()).decode()
+            try:
+                image = Image.open(img_path)
+                buffered = BytesIO()
+                image.save(buffered, format="PNG")
+                img_str = base64.b64encode(buffered.getvalue()).decode()
+            except Exception:
+                img_str = ""
 
             # ---------- FORMATAR "DE" E "POR" ----------
             de_raw = row.get('DE', 0)
@@ -184,7 +185,7 @@ for i in range(0, len(df_filtered), num_cols):
                 ">
                     <div style="text-align:center; flex-shrink:0;">
                         <img src="data:image/png;base64,{img_str}" 
-                            style="width:100%; height:auto; object-fit:cover; border-radius:15px 15px 0 0;">
+                             style="width:100%; height:auto; object-fit:cover; border-radius:15px 15px 0 0;">
                     </div>
                     <div style="padding:10px; text-align:left; flex-grow:1; overflow:hidden;">
                         <h4 style="margin-bottom:5px; font-size:18px;">{row['DESCRIÇÃO DO PRODUTO']}</h4>
