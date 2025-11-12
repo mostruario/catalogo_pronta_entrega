@@ -31,7 +31,7 @@ df['LINK_IMAGEM'] = df['LINK_IMAGEM'].apply(ajustar_caminho_imagem)
 col1, col2 = st.columns([1, 2])
 
 with col1:
-    marca_selecionada = st.selectbox("Marca", options=[""] + sorted(df["Marca"].dropna().unique().tolist()))
+    marca_selecionada = st.selectbox("Marca", options=[""] + sorted(df["MARCA"].dropna().unique().tolist()))
 with col2:
     pesquisa = st.text_input("Pesquisar Produto")
 
