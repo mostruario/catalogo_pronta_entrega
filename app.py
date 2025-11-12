@@ -74,3 +74,4 @@ for _, row in df.iterrows():
 # ---------- RODAPÉ ----------
 st.markdown("---")
 st.markdown("<center><small>Catálogo automático - CLAMI</small></center>", unsafe_allow_html=True)
+
