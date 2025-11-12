@@ -9,8 +9,11 @@ from io import BytesIO
 # ---------- CONFIGURAÇÃO ----------
 st.set_page_config(page_title="Catálogo - Pronta Entrega", layout="wide")
 
+# ---------- BASE DIR ----------
+BASE_DIR = Path(__file__).parent  # Pasta onde está o app.py
+
 # ---------- LOGO À ESQUERDA, ACIMA DO TÍTULO ----------
-logo_path = r"P:\PROJETO\logo.png"
+logo_path = BASE_DIR / "logo.png"
 with open(logo_path, "rb") as f:
     logo_b64 = base64.b64encode(f.read()).decode()
 
@@ -31,7 +34,7 @@ st.markdown(
 )
 
 # ---------- CARREGAR PLANILHA ----------
-DATA_PATH = r"P:\PROJETO\ESTOQUE PRONTA ENTREGA CLAMI.xlsx"
+DATA_PATH = BASE_DIR / "ESTOQUE PRONTA ENTREGA CLAMI.xlsx"
 df = pd.read_excel(DATA_PATH, header=1)
 df.columns = df.columns.str.strip()
 df = df.drop_duplicates(subset="CODIGO DO PRODUTO", keep="first")
@@ -125,7 +128,8 @@ if search_term:
 
 st.write(f"Total de produtos exibidos: {len(df_filtered)}")
 
-IMAGES_DIR = Path(r"P:\PROJETO\IMAGENS")
+# ---------- PASTA DE IMAGENS ----------
+IMAGES_DIR = BASE_DIR / "IMAGENS"
 
 # ---------- 5 CARDS POR LINHA ----------
 num_cols = 5
